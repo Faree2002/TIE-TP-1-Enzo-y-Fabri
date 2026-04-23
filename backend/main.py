@@ -6,6 +6,7 @@ from time import time
 
 app = FastAPI()
 
+# Habilita CORS para permitir llamadas del frontend al backend.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,8 +15,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Cliente de YouTube Music usado para consultar charts.
 yt = YTMusic()
 
+# TTL de cache en segundos para evitar consultas constantes a la API externa.
 CACHE_TTL_SECONDS = 300
 _cache_lock = Lock()
 _trending_cache = {
@@ -23,6 +26,7 @@ _trending_cache = {
     "data": None,
 }
 
+# Coordenadas por region para ubicar cada marcador en el mapa.
 REGIONS = {
     "AR": {"name": "Argentina", "lat": -38.4161, "lng": -63.6167},
     "US": {"name": "USA", "lat": 37.0902, "lng": -95.7129},
@@ -41,6 +45,7 @@ REGIONS = {
 
 
 def _normalize_artist(top_song):
+    # Extrae nombres de artistas validos y elimina etiquetas genericas.
     artist_list = [a.get("name", "").strip() for a in top_song.get("artists", []) if a.get("name")]
     non_generic = [
         name for name in artist_list
@@ -52,6 +57,7 @@ def _normalize_artist(top_song):
     if artist_list:
         return artist_list[0]
 
+    # Fallback: intenta inferir artista desde el formato "Artista - Tema".
     title = (top_song.get("title") or "").strip()
     if " - " in title:
         return title.split(" - ", 1)[0].strip()
@@ -60,8 +66,10 @@ def _normalize_artist(top_song):
 
 
 def _extract_top_tracks(charts, region_name):
+    # Devuelve hasta 3 canciones top para una region a partir del objeto charts.
     top_songs = []
 
+    # Si la region expone songs.items directamente, se prioriza esa fuente.
     if "songs" in charts and isinstance(charts["songs"], dict):
         items = charts["songs"].get("items", [])
         if items:
@@ -71,6 +79,7 @@ def _extract_top_tracks(charts, region_name):
     if not videos:
         return top_songs
 
+    # Puntua playlists para elegir la mas cercana a "top/trending" de la region.
     region_tokens = {region_name.lower(), region_name.replace(" ", "").lower()}
     playlist_candidates = []
     for idx, video in enumerate(videos):
@@ -95,12 +104,14 @@ def _extract_top_tracks(charts, region_name):
             if tracks:
                 return tracks[:3]
         except Exception:
+            # Si una playlist falla, continua con la siguiente candidata.
             continue
 
     return top_songs
 
 
 def _build_trending_results():
+    # Construye la respuesta final recorriendo todas las regiones definidas.
     results = []
 
     for code, info in REGIONS.items():
@@ -110,6 +121,7 @@ def _build_trending_results():
 
             top_songs = _extract_top_tracks(charts, info["name"])
 
+            # Fallback a videos si no se pudo resolver top songs.
             if not top_songs and "videos" in charts and len(charts["videos"]) > 0:
                 fallback_songs = []
                 for vid in charts["videos"][:3]:
@@ -138,6 +150,7 @@ def _build_trending_results():
                     thumbnail = top_song["thumbnails"][-1].get("url", "")
 
                 rank = index + 1
+                # Offset leve para evitar superposicion exacta de rank 1/2/3.
                 lng_offset = (index - 1) * 0.6
 
                 results.append({
@@ -155,12 +168,14 @@ def _build_trending_results():
                     }
                 })
         except Exception as e:
+            # Si una region falla, se registra error sin cortar toda la respuesta.
             results.append({"error": str(e), "code": code})
 
     return results
 
 
 def _refresh_trending_cache(force=False):
+    # Devuelve cache vigente; si expiro o se fuerza, recalcula y actualiza.
     now = time()
     with _cache_lock:
         cached_data = _trending_cache["data"]
@@ -179,10 +194,12 @@ def _refresh_trending_cache(force=False):
 
 @app.on_event("startup")
 def warm_trending_cache():
+    # Precalienta el cache en segundo plano al iniciar la app.
     Thread(target=_refresh_trending_cache, kwargs={"force": True}, daemon=True).start()
 
 @app.get("/api/trending")
 def get_trending_songs():
+    # Endpoint principal consumido por el frontend.
     now = time()
     with _cache_lock:
         cached_data = _trending_cache["data"]
@@ -195,4 +212,5 @@ def get_trending_songs():
 
 @app.get("/")
 def root():
+    # Endpoint de verificacion basico.
     return {"message": "Welcome to the YT Music Map API! Hit /api/trending to get chart info."}
