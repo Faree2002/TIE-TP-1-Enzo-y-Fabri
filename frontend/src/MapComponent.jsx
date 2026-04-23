@@ -3,8 +3,6 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix for default Leaflet marker icon issue in React
-// Leaflet uses a weird relative path strategy for its default icons that fails in bundlers
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -12,7 +10,6 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-// Custom highlighted marker for top songs
 const highlightedIcon = new L.Icon({
   ...L.Icon.Default.prototype.options,
   iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
@@ -26,7 +23,6 @@ const MapComponent = () => {
   useEffect(() => {
     const fetchTrendingSongs = async () => {
       try {
-        // Assume backend runs on port 8000
         const response = await fetch('http://localhost:8000/api/trending');
         if (!response.ok) {
           throw new Error('Network response was not ok');
@@ -44,7 +40,6 @@ const MapComponent = () => {
     fetchTrendingSongs();
   }, []);
 
-  // Map center: center of the Atlantic to show US, SA, and Europe/Africa comfortably
   const center = [20, -40];
 
   return (

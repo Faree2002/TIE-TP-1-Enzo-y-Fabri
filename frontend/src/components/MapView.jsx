@@ -41,7 +41,6 @@ const selectedIcon = L.divIcon({
 });
 
 const MapView = ({ songs, selectedSong, onSelectSong, mapTheme }) => {
-  // Center on the Atlantic to comfortably show Americas, Europe, and Africa
   const center = [20, -20];
   const markerRefs = useRef({});
   const isDarkTheme = mapTheme !== 'light';
@@ -72,7 +71,6 @@ const MapView = ({ songs, selectedSong, onSelectSong, mapTheme }) => {
     }))
   ), [songs]);
 
-  // When a song is selected from the sidebar, open its popup after fly animation
   useEffect(() => {
     if (selectedSong && markerRefs.current[selectedSong]) {
       const timer = setTimeout(() => {

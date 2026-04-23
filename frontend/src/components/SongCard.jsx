@@ -21,7 +21,6 @@ const SongCard = ({ song, selected, onClick, compact, delay, hideThumbnail = fal
   const regionId = song.regionCode || song.id;
   const rankLabel = song.rank ? ` #${song.rank}` : '';
 
-  // Compact variant: used inside map popups (vertical layout)
   if (compact) {
     return (
       <div className={`song-card compact ${hideThumbnail ? 'no-thumbnail' : ''}`}>
@@ -57,7 +56,6 @@ const SongCard = ({ song, selected, onClick, compact, delay, hideThumbnail = fal
     );
   }
 
-  // Default variant: used in sidebar (horizontal layout)
   return (
     <div
       className={`song-card ${selected ? 'selected' : ''}`}

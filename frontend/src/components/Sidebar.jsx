@@ -2,7 +2,6 @@ import React from 'react';
 import SongCard from './SongCard';
 
 const Sidebar = ({ songs, selectedSong, onSelectSong, isOpen, selectedRegion }) => {
-  // Group songs by region when showing "All"
   const groupedSongs = selectedRegion === 'ALL'
     ? songs.reduce((groups, song) => {
         const region = song.region;

@@ -6,16 +6,14 @@ from time import time
 
 app = FastAPI()
 
-# Allow frontend to communicate with this backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In a real app, you would restrict this to your frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Start ytmusic client
 yt = YTMusic()
 
 CACHE_TTL_SECONDS = 300
@@ -25,7 +23,6 @@ _trending_cache = {
     "data": None,
 }
 
-# Coordinates for locations (Lat, Long)
 REGIONS = {
     "AR": {"name": "Argentina", "lat": -38.4161, "lng": -63.6167},
     "US": {"name": "USA", "lat": 37.0902, "lng": -95.7129},
@@ -55,7 +52,6 @@ def _normalize_artist(top_song):
     if artist_list:
         return artist_list[0]
 
-    # Last resort: derive from title patterns like "Artist - Song"
     title = (top_song.get("title") or "").strip()
     if " - " in title:
         return title.split(" - ", 1)[0].strip()
@@ -66,7 +62,6 @@ def _normalize_artist(top_song):
 def _extract_top_tracks(charts, region_name):
     top_songs = []
 
-    # Some regions expose direct songs list.
     if "songs" in charts and isinstance(charts["songs"], dict):
         items = charts["songs"].get("items", [])
         if items:
@@ -76,7 +71,6 @@ def _extract_top_tracks(charts, region_name):
     if not videos:
         return top_songs
 
-    # Try country-specific chart playlists first, then fall back to any parseable playlist.
     region_tokens = {region_name.lower(), region_name.replace(" ", "").lower()}
     playlist_candidates = []
     for idx, video in enumerate(videos):
@@ -111,14 +105,11 @@ def _build_trending_results():
 
     for code, info in REGIONS.items():
         try:
-            # ytmusic API expects zz for global, us, ar, etc.
             country_code = 'ZZ' if code == 'ZZ' else code
             charts = yt.get_charts(country=country_code)
 
-            # Collect up to top 3 songs per region.
             top_songs = _extract_top_tracks(charts, info["name"])
 
-            # Fallback if no specific tracks could be fetched.
             if not top_songs and "videos" in charts and len(charts["videos"]) > 0:
                 fallback_songs = []
                 for vid in charts["videos"][:3]:
@@ -139,17 +130,14 @@ def _build_trending_results():
                 }]
 
             for index, top_song in enumerate(top_songs[:3]):
-                # Fallback to empty string if title/artists aren't formatted as expected
                 title = top_song.get("title", 'Unknown Title')
                 artists = _normalize_artist(top_song)
 
-                # Thumbnails
                 thumbnail = ""
                 if top_song.get("thumbnails"):
                     thumbnail = top_song["thumbnails"][-1].get("url", "")
 
                 rank = index + 1
-                # Small longitude offset to avoid complete marker overlap for rank 1/2/3.
                 lng_offset = (index - 1) * 0.6
 
                 results.append({
@@ -191,7 +179,6 @@ def _refresh_trending_cache(force=False):
 
 @app.on_event("startup")
 def warm_trending_cache():
-    # Warm in a daemon thread so startup isn't blocked by network-bound chart fetches.
     Thread(target=_refresh_trending_cache, kwargs={"force": True}, daemon=True).start()
 
 @app.get("/api/trending")

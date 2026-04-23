@@ -22,7 +22,6 @@ function App() {
       const response = await fetch('/api/trending');
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
-      // Filter out any error entries from the backend
       setTrendingData(data.filter(item => !item.error));
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -36,7 +35,6 @@ function App() {
     fetchData();
   }, [fetchData]);
 
-  // Filter data by selected region
   const regionFilteredData = useMemo(() => (
     selectedRegion === 'ALL'
       ? trendingData
@@ -55,7 +53,7 @@ function App() {
     }
   }, [filteredData, selectedSong]);
 
-  // Extract unique regions for the filter pills
+ 
   const regions = useMemo(() => (
     Array.from(
       new Map(
@@ -64,7 +62,6 @@ function App() {
     )
   ), [trendingData]);
 
-  // Toggle song selection — clicking the same song unselects it
   const handleSelectSong = useCallback((songId) => {
     setSelectedSong(prev => prev === songId ? null : songId);
   }, []);
